@@ -1,0 +1,23 @@
+# Keeps the free-tier infrastructure awake:
+# - Supabase free projects pause after 7 days with zero traffic
+# - Render free services spin down after 15 min idle
+# Runs every 10 minutes. Set the two repository variables in GitHub:
+# Settings -> Secrets and variables -> Actions -> Variables:
+#   HALCYRA_API_URL      e.g. https://halcyra-api.onrender.com
+#   HALCYRA_SUPABASE_URL e.g. https://xxxx.supabase.co
+name: keep-alive
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API health check
+        if: vars.HALCYRA_API_URL != ''
+        run: curl -sf --max-time 90 "${{ vars.HALCYRA_API_URL }}/health" || echo "API ping failed (cold start?)"
+      - name: Ping Supabase (counts as project traffic)
+        if: vars.HALCYRA_SUPABASE_URL != ''
+        run: curl -sf --max-time 30 "${{ vars.HALCYRA_SUPABASE_URL }}/auth/v1/health" || echo "Supabase ping failed"

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+apps/web/public/scorm-player/
+.env
+.env.local
+*.local
+.DS_Store

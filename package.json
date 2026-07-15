@@ -1,0 +1,13 @@
+{
+  "name": "halcyra",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @halcyra/web",
+    "dev:api": "npm run dev --workspace @halcyra/api",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  }
+}

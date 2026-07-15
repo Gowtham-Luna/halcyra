@@ -1,0 +1,22 @@
+# Render blueprint: deploys the API as a free-tier web service.
+# Connect the repo in the Render dashboard and it picks this up.
+# Free tier note: the service spins down after 15 min idle and cold-starts
+# in ~30-60s; the keep-alive GitHub Action (.github/workflows/keep-alive.yml)
+# pings it to keep that rare.
+services:
+  - type: web
+    name: halcyra-api
+    runtime: node
+    plan: free
+    buildCommand: npm install --workspace @halcyra/api
+    startCommand: npm run start --workspace @halcyra/api
+    healthCheckPath: /health
+    envVars:
+      - key: HALCYRA_SUPABASE_URL
+        sync: false
+      - key: HALCYRA_SUPABASE_ANON_KEY
+        sync: false
+      - key: HALCYRA_GEMINI_API_KEY
+        sync: false
+      - key: HALCYRA_WEB_ORIGIN
+        sync: false
