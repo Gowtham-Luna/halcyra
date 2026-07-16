@@ -6,7 +6,7 @@ import type { Block, BlockType } from "./types";
 import { BlockEditor } from "./BlockEditor";
 import { BlocksView } from "./BlockView";
 
-const REGENERATABLE: BlockType[] = ["paragraph", "heading", "list", "mcq"];
+const REGENERATABLE: BlockType[] = ["paragraph", "heading", "list", "mcq", "callout"];
 
 interface Props {
   lessonId: string;
@@ -18,6 +18,11 @@ const BLOCK_MENU: { type: BlockType; label: string; init?: (b: Block) => Block }
   { type: "heading", label: "+ Heading" },
   { type: "list", label: "+ List" },
   { type: "image", label: "+ Image" },
+  { type: "video", label: "+ Video" },
+  { type: "callout", label: "+ Callout" },
+  { type: "accordion", label: "+ Accordion" },
+  { type: "tabs", label: "+ Tabs" },
+  { type: "flashcards", label: "+ Flashcards" },
   { type: "divider", label: "+ Divider" },
   { type: "mcq", label: "+ Quiz question" },
   {

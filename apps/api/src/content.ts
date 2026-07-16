@@ -8,6 +8,7 @@ export type Block =
   | { id: string; type: "list"; items: string[]; style: "bullet" | "number" }
   | { id: string; type: "divider" }
   | { id: string; type: "image"; url: string; alt: string; caption: string }
+  | { id: string; type: "callout"; variant: "info" | "warning" | "tip"; html: string }
   | {
       id: string;
       type: "mcq";
@@ -25,6 +26,7 @@ interface RawBlock {
   level?: number;
   items?: string[];
   style?: string;
+  variant?: string;
   question?: string;
   options?: string[];
   correctIndex?: number;
@@ -36,8 +38,13 @@ const rawBlockSchema = {
   properties: {
     type: {
       type: "string",
-      enum: ["paragraph", "heading", "list", "mcq"],
+      enum: ["paragraph", "heading", "list", "mcq", "callout"],
       description: "Block type",
+    },
+    variant: {
+      type: "string",
+      enum: ["info", "warning", "tip"],
+      description: "Callout style",
     },
     text: { type: "string", description: "Text for paragraph/heading blocks" },
     level: { type: "integer", enum: [2, 3], description: "Heading level" },
@@ -71,11 +78,21 @@ const blocksResponseSchema = {
   required: ["blocks"],
 };
 
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function mapRawBlock(raw: RawBlock): Block | null {
   const id = crypto.randomUUID();
   switch (raw.type) {
     case "paragraph":
       return raw.text ? { id, type: "paragraph", text: raw.text } : null;
+    case "callout": {
+      if (!raw.text) return null;
+      const variant =
+        raw.variant === "warning" || raw.variant === "tip" ? raw.variant : "info";
+      return { id, type: "callout", variant, html: `<p>${escapeHtml(raw.text)}</p>` };
+    }
     case "heading":
       return raw.text
         ? { id, type: "heading", text: raw.text, level: raw.level === 3 ? 3 : 2 }
@@ -114,7 +131,7 @@ export async function generateLessonBlocks(ctx: LessonContext): Promise<Block[]>
   const result = await generateJson<{ blocks: RawBlock[] }>(
     `You are an instructional designer writing a lesson for the course "${ctx.courseTitle}" (topic: ${ctx.topic}).
 Lesson: "${ctx.lessonHeading}". Summary of what it should cover: ${ctx.lessonBody || "(none provided — infer from the heading)"}.
-Write the full lesson content as 5-10 content blocks: use heading blocks (level 2 or 3) to structure sections, paragraph blocks for explanations (2-4 sentences each), and list blocks for enumerable points. Do NOT include mcq blocks. Write directly to the learner in clear, practical language.`,
+Write the full lesson content as 5-10 content blocks: use heading blocks (level 2 or 3) to structure sections, paragraph blocks for explanations (2-4 sentences each), list blocks for enumerable points, and at most one callout block (variant info/warning/tip) for a key takeaway or caution. Do NOT include mcq blocks. Write directly to the learner in clear, practical language.`,
     blocksResponseSchema,
   );
   const blocks = result.blocks.map(mapRawBlock).filter((b): b is Block => b !== null);

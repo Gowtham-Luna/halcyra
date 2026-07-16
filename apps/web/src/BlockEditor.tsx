@@ -1,7 +1,9 @@
 import { useRef, useState } from "react";
 import type { Block } from "./types";
+import { escapeHtml, parseVideoUrl } from "./types";
 import { uploadImage } from "./lib/media";
 import { aiPost } from "./lib/api";
+import { RichTextEditor } from "./RichTextEditor";
 
 interface Props {
   block: Block;
@@ -113,14 +115,203 @@ export function BlockEditor({ block, onChange }: Props) {
   switch (block.type) {
     case "paragraph":
       return (
-        <textarea
-          className="block-body"
-          value={block.text}
-          onChange={(e) => onChange({ ...block, text: e.target.value })}
+        <RichTextEditor
+          html={block.html ?? `<p>${escapeHtml(block.text)}</p>`}
           placeholder="Write a paragraph…"
-          rows={3}
+          onChange={(html, plainText) => onChange({ ...block, html, text: plainText })}
         />
       );
+
+    case "callout":
+      return (
+        <div className="callout-editor">
+          <select
+            value={block.variant}
+            onChange={(e) =>
+              onChange({ ...block, variant: e.target.value as "info" | "warning" | "tip" })
+            }
+          >
+            <option value="info">ℹ Info</option>
+            <option value="warning">⚠ Warning</option>
+            <option value="tip">💡 Tip</option>
+          </select>
+          <RichTextEditor
+            html={block.html}
+            placeholder="Callout text…"
+            onChange={(html) => onChange({ ...block, html })}
+          />
+        </div>
+      );
+
+    case "accordion":
+      return (
+        <div className="items-editor">
+          {block.items.map((item, i) => (
+            <div className="item-editor" key={i}>
+              <div className="item-editor-head">
+                <input
+                  value={item.title}
+                  onChange={(e) => {
+                    const items = [...block.items];
+                    items[i] = { ...item, title: e.target.value };
+                    onChange({ ...block, items });
+                  }}
+                  placeholder={`Section ${i + 1} title`}
+                />
+                <button
+                  onClick={() =>
+                    onChange({ ...block, items: block.items.filter((_, j) => j !== i) })
+                  }
+                  disabled={block.items.length <= 1}
+                  title="Remove section"
+                >
+                  ✕
+                </button>
+              </div>
+              <RichTextEditor
+                html={item.html}
+                placeholder="Section content…"
+                onChange={(html) => {
+                  const items = [...block.items];
+                  items[i] = { ...item, html };
+                  onChange({ ...block, items });
+                }}
+              />
+            </div>
+          ))}
+          <button
+            className="add-option"
+            onClick={() =>
+              onChange({
+                ...block,
+                items: [...block.items, { title: `Section ${block.items.length + 1}`, html: "" }],
+              })
+            }
+          >
+            + Add section
+          </button>
+        </div>
+      );
+
+    case "tabs":
+      return (
+        <div className="items-editor">
+          {block.tabs.map((tab, i) => (
+            <div className="item-editor" key={i}>
+              <div className="item-editor-head">
+                <input
+                  value={tab.title}
+                  onChange={(e) => {
+                    const tabs = [...block.tabs];
+                    tabs[i] = { ...tab, title: e.target.value };
+                    onChange({ ...block, tabs });
+                  }}
+                  placeholder={`Tab ${i + 1} title`}
+                />
+                <button
+                  onClick={() => onChange({ ...block, tabs: block.tabs.filter((_, j) => j !== i) })}
+                  disabled={block.tabs.length <= 1}
+                  title="Remove tab"
+                >
+                  ✕
+                </button>
+              </div>
+              <RichTextEditor
+                html={tab.html}
+                placeholder="Tab content…"
+                onChange={(html) => {
+                  const tabs = [...block.tabs];
+                  tabs[i] = { ...tab, html };
+                  onChange({ ...block, tabs });
+                }}
+              />
+            </div>
+          ))}
+          <button
+            className="add-option"
+            onClick={() =>
+              onChange({
+                ...block,
+                tabs: [...block.tabs, { title: `Tab ${block.tabs.length + 1}`, html: "" }],
+              })
+            }
+            disabled={block.tabs.length >= 6}
+          >
+            + Add tab
+          </button>
+        </div>
+      );
+
+    case "flashcards":
+      return (
+        <div className="items-editor">
+          {block.cards.map((card, i) => (
+            <div className="flashcard-editor" key={i}>
+              <textarea
+                value={card.front}
+                onChange={(e) => {
+                  const cards = [...block.cards];
+                  cards[i] = { ...card, front: e.target.value };
+                  onChange({ ...block, cards });
+                }}
+                placeholder="Front (term/question)"
+                rows={2}
+              />
+              <textarea
+                value={card.back}
+                onChange={(e) => {
+                  const cards = [...block.cards];
+                  cards[i] = { ...card, back: e.target.value };
+                  onChange({ ...block, cards });
+                }}
+                placeholder="Back (definition/answer)"
+                rows={2}
+              />
+              <button
+                onClick={() => onChange({ ...block, cards: block.cards.filter((_, j) => j !== i) })}
+                disabled={block.cards.length <= 1}
+                title="Remove card"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          <button
+            className="add-option"
+            onClick={() => onChange({ ...block, cards: [...block.cards, { front: "", back: "" }] })}
+            disabled={block.cards.length >= 12}
+          >
+            + Add card
+          </button>
+        </div>
+      );
+
+    case "video": {
+      const embed = block.url ? parseVideoUrl(block.url) : null;
+      return (
+        <div className="image-block">
+          <input
+            value={block.url}
+            onChange={(e) => onChange({ ...block, url: e.target.value })}
+            placeholder="YouTube / Vimeo URL, or a direct .mp4 link"
+          />
+          {block.url && !embed && (
+            <p className="message error">Unrecognized video URL — use YouTube, Vimeo, or .mp4/.webm</p>
+          )}
+          {embed?.kind === "iframe" && (
+            <div className="video-frame">
+              <iframe src={embed.src} title="Video preview" allowFullScreen />
+            </div>
+          )}
+          {embed?.kind === "file" && <video className="video-file" src={embed.src} controls />}
+          <input
+            value={block.caption}
+            onChange={(e) => onChange({ ...block, caption: e.target.value })}
+            placeholder="Caption (optional)"
+          />
+        </div>
+      );
+    }
 
     case "heading":
       return (
