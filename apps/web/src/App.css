@@ -502,3 +502,81 @@ header h1 { margin: 0; }
   border-radius: 8px;
 }
 .video-file { width: 100%; border-radius: 8px; }
+
+/* Blocks pack 1 */
+.spacer-block { height: 3rem; }
+.spacer-block-editor {
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.4;
+  font-size: 0.8rem;
+  border: 1px dashed #8886;
+  border-radius: 6px;
+}
+.continue-btn { display: inline-block; }
+.button-view { text-align: center; margin: 1.25rem 0; }
+.button-link {
+  display: inline-block;
+  background: #6c5ce7;
+  color: white;
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.quote-view {
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid #6c5ce7;
+}
+.quote-text { font-size: 1.15rem; font-style: italic; line-height: 1.6; margin: 0 0 0.5rem; }
+.quote-view footer { font-weight: 600; font-size: 0.9rem; }
+.quote-role { font-weight: 400; opacity: 0.7; }
+
+.statement-view.bold {
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 1.5rem 1rem;
+  line-height: 1.45;
+}
+.statement-view.accent {
+  border-left: 4px solid #6c5ce7;
+  padding: 0.75rem 0 0.75rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.table-scroll { overflow-x: auto; margin: 1rem 0; }
+.table-view, .table-editor table { border-collapse: collapse; width: 100%; }
+.table-view th, .table-view td {
+  border: 1px solid #8884;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.table-view th { background: #6c5ce714; }
+.table-editor th, .table-editor td { padding: 0.15rem; }
+.table-editor th { display: flex; gap: 0.25rem; }
+.table-editor input { width: 100%; min-width: 90px; }
+.table-editor .row-actions button, .table-editor th button {
+  background: transparent;
+  color: inherit;
+  border: none;
+  padding: 0.15rem 0.35rem;
+}
+
+.columns-editor, .columns-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 0.5rem 0;
+}
+@media (max-width: 640px) {
+  .columns-editor, .columns-view { grid-template-columns: 1fr; }
+}
+
+.checklist { list-style: none; padding-left: 0.25rem; }
+.checklist label { display: flex; gap: 0.5rem; align-items: baseline; cursor: pointer; }

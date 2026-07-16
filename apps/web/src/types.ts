@@ -7,8 +7,14 @@ export type Block =
   | { id: string; type: "tabs"; tabs: { title: string; html: string }[] }
   | { id: string; type: "flashcards"; cards: { front: string; back: string }[] }
   | { id: string; type: "video"; url: string; caption: string }
-  | { id: string; type: "list"; items: string[]; style: "bullet" | "number" }
-  | { id: string; type: "divider" }
+  | { id: string; type: "list"; items: string[]; style: "bullet" | "number" | "check" }
+  // style undefined (legacy) renders as "line"
+  | { id: string; type: "divider"; style?: "line" | "spacer" | "continue" }
+  | { id: string; type: "quote"; text: string; cite: string; role: string }
+  | { id: string; type: "statement"; variant: "bold" | "accent"; html: string }
+  | { id: string; type: "table"; header: string[]; rows: string[][] }
+  | { id: string; type: "columns"; leftHtml: string; rightHtml: string }
+  | { id: string; type: "button"; label: string; url: string }
   | { id: string; type: "image"; url: string; alt: string; caption: string }
   | {
       id: string;
@@ -46,6 +52,16 @@ export function newBlock(type: BlockType): Block {
       return { id, type, cards: [{ front: "", back: "" }] };
     case "video":
       return { id, type, url: "", caption: "" };
+    case "quote":
+      return { id, type, text: "", cite: "", role: "" };
+    case "statement":
+      return { id, type, variant: "bold", html: "" };
+    case "table":
+      return { id, type, header: ["Column 1", "Column 2"], rows: [["", ""]] };
+    case "columns":
+      return { id, type, leftHtml: "", rightHtml: "" };
+    case "button":
+      return { id, type, label: "Learn more", url: "" };
   }
 }
 

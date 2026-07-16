@@ -338,15 +338,18 @@ export function BlockEditor({ block, onChange }: Props) {
           <select
             value={block.style}
             onChange={(e) =>
-              onChange({ ...block, style: e.target.value as "bullet" | "number" })
+              onChange({ ...block, style: e.target.value as "bullet" | "number" | "check" })
             }
           >
             <option value="bullet">• Bulleted</option>
             <option value="number">1. Numbered</option>
+            <option value="check">☑ Checkbox</option>
           </select>
           {block.items.map((item, i) => (
             <div className="list-item" key={i}>
-              <span className="list-marker">{block.style === "bullet" ? "•" : `${i + 1}.`}</span>
+              <span className="list-marker">
+                {block.style === "bullet" ? "•" : block.style === "check" ? "☐" : `${i + 1}.`}
+              </span>
               <input
                 value={item}
                 onChange={(e) => {
@@ -372,7 +375,181 @@ export function BlockEditor({ block, onChange }: Props) {
       );
 
     case "divider":
-      return <hr className="divider-block" />;
+      return (
+        <div className="list-block">
+          <select
+            value={block.style ?? "line"}
+            onChange={(e) =>
+              onChange({ ...block, style: e.target.value as "line" | "spacer" | "continue" })
+            }
+          >
+            <option value="line">— Line</option>
+            <option value="spacer">␣ Spacer</option>
+            <option value="continue">▼ Continue button (gates content below)</option>
+          </select>
+          {(block.style ?? "line") === "line" && <hr className="divider-block" />}
+          {block.style === "spacer" && <div className="spacer-block-editor">(vertical space)</div>}
+          {block.style === "continue" && (
+            <button className="continue-btn" disabled>Continue ▾</button>
+          )}
+        </div>
+      );
+
+    case "quote":
+      return (
+        <div className="items-editor">
+          <textarea
+            className="block-body"
+            value={block.text}
+            onChange={(e) => onChange({ ...block, text: e.target.value })}
+            placeholder="Quote text…"
+            rows={2}
+          />
+          <div className="item-editor-head">
+            <input
+              value={block.cite}
+              onChange={(e) => onChange({ ...block, cite: e.target.value })}
+              placeholder="Who said it"
+            />
+            <input
+              value={block.role}
+              onChange={(e) => onChange({ ...block, role: e.target.value })}
+              placeholder="Role/title (optional)"
+            />
+          </div>
+        </div>
+      );
+
+    case "statement":
+      return (
+        <div className="callout-editor">
+          <select
+            value={block.variant}
+            onChange={(e) =>
+              onChange({ ...block, variant: e.target.value as "bold" | "accent" })
+            }
+          >
+            <option value="bold">Bold (large, centered)</option>
+            <option value="accent">Accent (left border)</option>
+          </select>
+          <RichTextEditor
+            html={block.html}
+            placeholder="Statement text…"
+            onChange={(html) => onChange({ ...block, html })}
+          />
+        </div>
+      );
+
+    case "table": {
+      const setCell = (r: number, c: number, value: string) => {
+        const rows = block.rows.map((row) => [...row]);
+        rows[r][c] = value;
+        onChange({ ...block, rows });
+      };
+      const setHeader = (c: number, value: string) => {
+        const header = [...block.header];
+        header[c] = value;
+        onChange({ ...block, header });
+      };
+      const addRow = () =>
+        onChange({ ...block, rows: [...block.rows, block.header.map(() => "")] });
+      const addCol = () =>
+        onChange({
+          ...block,
+          header: [...block.header, `Column ${block.header.length + 1}`],
+          rows: block.rows.map((row) => [...row, ""]),
+        });
+      const removeRow = (r: number) =>
+        onChange({ ...block, rows: block.rows.filter((_, i) => i !== r) });
+      const removeCol = (c: number) =>
+        onChange({
+          ...block,
+          header: block.header.filter((_, i) => i !== c),
+          rows: block.rows.map((row) => row.filter((_, i) => i !== c)),
+        });
+      return (
+        <div className="table-editor">
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  {block.header.map((h, c) => (
+                    <th key={c}>
+                      <input value={h} onChange={(e) => setHeader(c, e.target.value)} />
+                      <button
+                        onClick={() => removeCol(c)}
+                        disabled={block.header.length <= 1}
+                        title="Remove column"
+                      >
+                        ✕
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {block.rows.map((row, r) => (
+                  <tr key={r}>
+                    {row.map((cell, c) => (
+                      <td key={c}>
+                        <input value={cell} onChange={(e) => setCell(r, c, e.target.value)} />
+                      </td>
+                    ))}
+                    <td className="row-actions">
+                      <button
+                        onClick={() => removeRow(r)}
+                        disabled={block.rows.length <= 1}
+                        title="Remove row"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="item-editor-head">
+            <button className="add-option" onClick={addRow}>+ Row</button>
+            <button className="add-option" onClick={addCol} disabled={block.header.length >= 6}>
+              + Column
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    case "columns":
+      return (
+        <div className="columns-editor">
+          <RichTextEditor
+            html={block.leftHtml}
+            placeholder="Left column…"
+            onChange={(leftHtml) => onChange({ ...block, leftHtml })}
+          />
+          <RichTextEditor
+            html={block.rightHtml}
+            placeholder="Right column…"
+            onChange={(rightHtml) => onChange({ ...block, rightHtml })}
+          />
+        </div>
+      );
+
+    case "button":
+      return (
+        <div className="item-editor-head">
+          <input
+            value={block.label}
+            onChange={(e) => onChange({ ...block, label: e.target.value })}
+            placeholder="Button label"
+          />
+          <input
+            value={block.url}
+            onChange={(e) => onChange({ ...block, url: e.target.value })}
+            placeholder="https://link-to-open"
+          />
+        </div>
+      );
 
     case "mcq":
       return (

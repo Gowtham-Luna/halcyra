@@ -187,6 +187,7 @@ export function BlockView({ block }: { block: Block }) {
         <h3 className="view-heading">{block.text}</h3>
       );
     case "list":
+      if (block.style === "check") return <CheckListView block={block} />;
       return block.style === "number" ? (
         <ol className="view-list">
           {block.items.map((item, i) => (
@@ -201,7 +202,63 @@ export function BlockView({ block }: { block: Block }) {
         </ul>
       );
     case "divider":
+      if (block.style === "spacer") return <div className="spacer-block" />;
+      // Revealed "continue" gates render nothing — content simply flows on.
+      // (Unrevealed gates never reach BlockView; BlocksView intercepts them.)
+      if (block.style === "continue") return null;
       return <hr className="divider-block" />;
+    case "quote":
+      return (
+        <blockquote className="quote-view">
+          <p className="quote-text">“{block.text}”</p>
+          {(block.cite || block.role) && (
+            <footer>
+              {block.cite}
+              {block.role && <span className="quote-role"> · {block.role}</span>}
+            </footer>
+          )}
+        </blockquote>
+      );
+    case "statement":
+      return <RichText html={block.html} className={`statement-view ${block.variant}`} />;
+    case "table":
+      return (
+        <div className="table-scroll">
+          <table className="table-view">
+            <thead>
+              <tr>
+                {block.header.map((h, c) => (
+                  <th key={c}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, r) => (
+                <tr key={r}>
+                  {row.map((cell, c) => (
+                    <td key={c}>{cell}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    case "columns":
+      return (
+        <div className="columns-view">
+          <RichText html={block.leftHtml} />
+          <RichText html={block.rightHtml} />
+        </div>
+      );
+    case "button":
+      return block.url ? (
+        <p className="button-view">
+          <a href={block.url} target="_blank" rel="noopener noreferrer" className="button-link">
+            {block.label || "Open link"}
+          </a>
+        </p>
+      ) : null;
     case "image":
       return block.url ? (
         <figure className="view-figure">
@@ -214,12 +271,57 @@ export function BlockView({ block }: { block: Block }) {
   }
 }
 
+function CheckListView({ block }: { block: Extract<Block, { type: "list" }> }) {
+  const [ticked, setTicked] = useState<Set<number>>(new Set());
+  return (
+    <ul className="view-list checklist">
+      {block.items.map((item, i) => (
+        <li key={i}>
+          <label>
+            <input
+              type="checkbox"
+              checked={ticked.has(i)}
+              onChange={() =>
+                setTicked((s) => {
+                  const next = new Set(s);
+                  if (next.has(i)) next.delete(i);
+                  else next.add(i);
+                  return next;
+                })
+              }
+            />
+            <span>{item}</span>
+          </label>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function BlocksView({ blocks }: { blocks: Block[] }) {
+  // "Continue" dividers gate everything below them until clicked.
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const gateIndex = blocks.findIndex(
+    (b) => b.type === "divider" && b.style === "continue" && !revealed.has(b.id),
+  );
+  const visible = gateIndex === -1 ? blocks : blocks.slice(0, gateIndex);
+  const gate = gateIndex === -1 ? null : blocks[gateIndex];
+
   return (
     <div className="blocks-view">
-      {blocks.map((block) => (
+      {visible.map((block) => (
         <BlockView key={block.id} block={block} />
       ))}
+      {gate && (
+        <p className="button-view">
+          <button
+            className="continue-btn"
+            onClick={() => setRevealed((s) => new Set(s).add(gate.id))}
+          >
+            Continue ▾
+          </button>
+        </p>
+      )}
     </div>
   );
 }

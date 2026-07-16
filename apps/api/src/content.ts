@@ -5,10 +5,11 @@ import { generateJson } from "./gemini.js";
 export type Block =
   | { id: string; type: "paragraph"; text: string }
   | { id: string; type: "heading"; text: string; level: 2 | 3 }
-  | { id: string; type: "list"; items: string[]; style: "bullet" | "number" }
-  | { id: string; type: "divider" }
+  | { id: string; type: "list"; items: string[]; style: "bullet" | "number" | "check" }
+  | { id: string; type: "divider"; style?: "line" | "spacer" | "continue" }
   | { id: string; type: "image"; url: string; alt: string; caption: string }
   | { id: string; type: "callout"; variant: "info" | "warning" | "tip"; html: string }
+  | { id: string; type: "quote"; text: string; cite: string; role: string }
   | {
       id: string;
       type: "mcq";
@@ -27,6 +28,7 @@ interface RawBlock {
   items?: string[];
   style?: string;
   variant?: string;
+  cite?: string;
   question?: string;
   options?: string[];
   correctIndex?: number;
@@ -38,8 +40,12 @@ const rawBlockSchema = {
   properties: {
     type: {
       type: "string",
-      enum: ["paragraph", "heading", "list", "mcq", "callout"],
+      enum: ["paragraph", "heading", "list", "mcq", "callout", "quote"],
       description: "Block type",
+    },
+    cite: {
+      type: "string",
+      description: "Quote attribution (who said it)",
     },
     variant: {
       type: "string",
@@ -93,6 +99,10 @@ function mapRawBlock(raw: RawBlock): Block | null {
         raw.variant === "warning" || raw.variant === "tip" ? raw.variant : "info";
       return { id, type: "callout", variant, html: `<p>${escapeHtml(raw.text)}</p>` };
     }
+    case "quote":
+      return raw.text
+        ? { id, type: "quote", text: raw.text, cite: raw.cite ?? "", role: "" }
+        : null;
     case "heading":
       return raw.text
         ? { id, type: "heading", text: raw.text, level: raw.level === 3 ? 3 : 2 }

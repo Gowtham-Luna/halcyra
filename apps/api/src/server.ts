@@ -124,9 +124,9 @@ app.post("/api/quiz", requireUser, async (req, res) => {
 app.post("/api/block", requireUser, async (req, res) => {
   const lessonHeading = str(req.body?.lessonHeading, 300);
   const block = req.body?.block;
-  const validTypes = ["paragraph", "heading", "list", "mcq"];
+  const validTypes = ["paragraph", "heading", "list", "mcq", "callout", "quote"];
   if (!lessonHeading || typeof block !== "object" || block === null || !validTypes.includes(block.type)) {
-    res.status(400).json({ error: "Provide lessonHeading and a block of type paragraph/heading/list/mcq" });
+    res.status(400).json({ error: `Provide lessonHeading and a block of type ${validTypes.join("/")}` });
     return;
   }
   try {
