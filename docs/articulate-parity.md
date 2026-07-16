@@ -4,11 +4,16 @@ Researched 2026-07-16 from Articulate's current docs. This is the master
 checklist for building Halcyra to competitive parity, one slice at a time.
 Statuses: ✅ done · 🟡 partial · ❌ missing · 🚫 out of scope for v1.
 
-Articulate 360 is five products in one subscription: **Rise 360** (web block
-editor — our v1 target), **Storyline 360** (desktop timeline editor — 🚫 per
-project scope), **AI Assistant**, **Reach 360** (built-in LMS), **Review 360**
-(stakeholder feedback), plus Content Library (stock/templates) and
-Localization.
+Articulate 360's current product nav (verified on articulate.com/360,
+2026-07-16): **AI Assistant**, **Rise** (web block editor — our v1 target),
+**Storyline** (desktop timeline editor — 🚫 per project scope),
+**Localization**, **Review**, **Reach** (built-in LMS), plus **Content
+Library 360**, **Articulate 360 Teams** (org/admin tier), and **Articulate
+360 Training** (service). The site groups platform capabilities as
+Create / Collaborate / Distribute / Scale, and headlines WCAG 2.1 AA
+accessibility, RTL support, and 80+ language AI translation. Studio 360,
+Peek 360, and Replay 360 are no longer on the main product nav (legacy apps
+still in the subscription; documented below for completeness).
 
 ---
 
@@ -74,6 +79,7 @@ Localization.
 | Matching | ❌ | |
 | Question bank / draw from bank | ❌ | |
 | Quiz lesson (graded, pass mark, retries, shuffle) | ❌ | Needed for SCORM scores |
+| Quiz settings: passing score, randomize, timer, retry limit, skip-ahead | ❌ | Part of quiz-lesson slice |
 
 ### Charts & dividers
 | Articulate | Halcyra | Notes |
@@ -86,6 +92,7 @@ Localization.
 ## 2. Rise 360 — course-level features
 | Feature | Halcyra | Notes |
 |---|---|---|
+| Content formats: Course / Microlearning (single-page, completion-only) / Guides | 🟡 | Courses only; microlearning = cheap win (one-lesson course + single-page player) |
 | Themes (prebuilt + custom) | ❌ | |
 | Fonts (pairings, custom fonts) | ❌ | |
 | Colors (accent customization) | ❌ | Hardcoded purple |
@@ -132,13 +139,77 @@ Localization.
 ## 5. Review 360
 | Feature | Halcyra | Notes |
 |---|---|---|
-| Share draft for review | 🟡 | Share link exists; no review mode |
-| In-context comments/threads | ❌ | |
-| Version history | ❌ | |
+| Publish draft to review space | 🟡 | Share link exists; no review mode |
+| Comments anchored to lesson/slide + general comment tab | ❌ | |
+| Resolve/reply threads | ❌ | |
+| Version history (re-publish, compare) | ❌ | |
+| Password/access-controlled review links | ❌ | |
+| Language validation workflow (with Localization) | ❌ | |
 
-## 6. Other suite parts
-- **Content Library 360** (stock photos/templates): ❌ — planned via Unsplash/Pexels APIs (do NOT copy Articulate's library).
-- **Storyline 360**: 🚫 v1 (timeline editor explicitly out of scope).
+## 6. Storyline 360 — full inventory (🚫 all of it for v1)
+Documented for completeness; the freeform timeline/canvas paradigm is
+explicitly out of v1 scope (CLAUDE.md). Revisit only if customer demand
+proves it. Key capabilities: scenes/slides with timeline editor; slide
+layers (incl. modal dialog layers); object states (hover/selected/custom);
+trigger system (event → action, with conditions); variables (number, text,
+true/false) + conditional logic; motion paths, 15 entrance/exit animations,
+17 transitions; 25 question types incl. freeform (drag-and-drop, hotspot,
+pick-many…); question pools + randomization; screen recording with
+step-by-step playback modes; characters (photographic + illustrated);
+dials/sliders; 360° image / VR interactions; accessibility checker; AI
+Assistant integration (incl. audio-sync of objects/animations); publishes to
+web, Review 360, LMS (SCORM/xAPI/cmi5), and as a block inside Rise.
+
+## 7. Studio 360 (Presenter / Quizmaker / Engage) — 🚫
+PowerPoint-based Windows authoring (slides → course), standalone quiz maker,
+prebuilt interaction templates. Legacy paradigm; Halcyra's block editor +
+future template library covers the same jobs. No parity work planned.
+
+## 8. Peek 360 & Replay 360 (screen/video capture) — ❌ future
+Peek: quick screen recordings shared via link or MP4. Replay: screen + webcam
+video editing. Halcyra equivalent would be an in-browser screen recorder
+(getDisplayMedia → upload to media storage → video block). Real demand exists
+for software training; park until after Reach-lite.
+
+## 9. Content Library 360 — 🟡 partial plan
+13M+ stock assets: slide/block templates, photos, illustrations, icons,
+videos, characters. Halcyra path (never copy theirs): Unsplash/Pexels/Pixabay
+APIs for photos (❌ not wired yet — key needed), AI images ✅, block/lesson
+templates ❌ (own template system, pairs with "block templates" slice),
+characters/icons ❌ (open-source icon sets; characters via AI generation).
+
+## 10. Articulate Localization (add-on)
+| Feature | Halcyra | Notes |
+|---|---|---|
+| AI translation into 80+ languages (Rise + Storyline) | ❌ | Plan: DeepL free tier / LibreTranslate |
+| Custom glossaries | ❌ | |
+| Language validation in Review 360 (in-context, import back) | ❌ | Depends on Review-lite |
+| XLIFF export/import for external vendors | ❌ | |
+| Built-in RTL support | ❌ | |
+| UI label sets per language | ❌ | |
+
+## 11. Articulate 360 Teams (org/admin tier)
+| Feature | Halcyra | Notes |
+|---|---|---|
+| Simultaneous course editing (Rise) | ❌ | The collaboration slice |
+| Shared custom block templates | ❌ | Pairs with block-templates slice |
+| Shared team slides/templates (Storyline) | 🚫 | Storyline-bound |
+| Team admin: seats, invites, group admins, permissions | ❌ | Needs orgs/roles model — build with billing (slice 10) |
+| Enterprise seat/content transfer | ❌ | Post-revenue |
+| Consolidated billing | ❌ | Stripe per-org, slice 10 |
+| Unlimited/shared storage | 🚫 | Free-tier reality: quotas instead |
+| Priority support, health checks, onboarding coaches | n/a | Service, not software |
+
+## 12. Platform-level capabilities
+| Capability | Halcyra | Notes |
+|---|---|---|
+| Accessibility: WCAG 2.1 AA authoring output | ❌ | Fold into design overhaul: semantic markup, focus order, contrast, alt enforcement — cheap now, expensive later |
+| RTL language support | ❌ | With localization slice |
+| "9x faster with AI" authoring loop | 🟡 | Outline→draft→quiz→images exist; doc-to-course + draft-all missing |
+
+## 13. Articulate 360 Training — n/a
+Live + on-demand training with industry experts is a service, not software.
+Halcyra equivalent eventually: docs, template gallery, tutorial content.
 
 ---
 
@@ -149,12 +220,12 @@ Localization.
 3. **Quiz depth**: multiple response, fill-in-blank, matching; graded quiz lesson with pass mark, retries, shuffle; score → SCORM (`cmi.core.score`)
 4. **Blocks pack 3 — interactive**: labeled graphic, process, timeline, sorting; flashcard images
 5. **Course branding**: themes, accent color, fonts, cover page, navigation options, sections, duplicate course
-6. **Design overhaul**: design system pass across editor/player/dashboard/auth (pairs with 5)
+6. **Design overhaul**: design system pass across editor/player/dashboard/auth (pairs with 5) — includes the WCAG 2.1 AA accessibility baseline (semantic markup, focus order, contrast, alt enforcement)
 7. **AI expansion**: doc-to-course extraction, draft-all-lessons queue, tone/rewrite controls, summaries, TTS narration (Piper/Google free tier)
 8. **Reach-lite**: learner accounts, enrollment, server-side progress/completion, basic reporting dashboard, certificates
 9. **Review-lite**: comment threads on lessons, reviewer share mode
 10. **Exports**: SCORM 2004 + xAPI, PDF export
 11. **Localization**: DeepL/LibreTranslate pipeline, label sets, RTL
-12. **Collaboration/scale** (post-revenue): co-editing, question banks, block templates, charts, scenario branching, undo/redo
+12. **Collaboration/scale** (post-revenue): co-editing, orgs/teams with roles + seat admin, shared block templates, question banks, charts, scenario branching, undo/redo, screen recording (Peek-equivalent)
 
-Sources: [Rise lesson/block types](https://www.articulatesupport.com/article/Rise-Lesson-and-Block-Types) · [Articulate 360 suite](https://www.articulate.com/360/) · [AI Assistant features](https://www.articulatesupport.com/article/AI-Assistant-Storyline-360-and-Rise-360-Features) · [Reach 360 features](https://www.articulatesupport.com/article/Reach-360-All-Features) · [Rise theme/settings](https://www.articulatesupport.com/article/Rise-360-Personalize-the-Theme)
+Sources: [Rise lesson/block types](https://www.articulatesupport.com/article/Rise-Lesson-and-Block-Types) · [Articulate 360 suite](https://www.articulate.com/360/) · [Articulate 360 Teams](https://www.articulate.com/360/teams/) · [AI Assistant features](https://www.articulatesupport.com/article/AI-Assistant-Storyline-360-and-Rise-360-Features) · [Reach 360 features](https://www.articulatesupport.com/article/Reach-360-All-Features) · [Rise theme/settings](https://www.articulatesupport.com/article/Rise-360-Personalize-the-Theme) · [Storyline all features](https://www.articulate.com/360/storyline/all/) · [Rise quiz settings](https://www.articulatesupport.com/article/Rise-Quiz-Settings) · [Localization overview](https://www.articulatesupport.com/article/Articulate-Localization-Overview)
