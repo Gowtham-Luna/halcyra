@@ -20,20 +20,20 @@ Localization.
 | Paragraph | ✅ | Rich text (bold/italic/links/lists) |
 | Paragraph with heading/subheading | 🟡 | Compose heading + paragraph blocks manually |
 | Heading / Subheading | ✅ | H2/H3 |
-| Two column | ❌ | Layout container |
-| Table | ❌ | |
+| Two column | ✅ | Two rich-text columns (not nested blocks) |
+| Table | ✅ | Editable header + rows |
 
 ### Statement / quote blocks
 | Articulate | Halcyra | Notes |
 |---|---|---|
-| Statement (A–D styles) + Note | 🟡 | Callout (info/warning/tip) covers Note; no large statement styles |
-| Quote (A–D, on image, carousel) | ❌ | |
+| Statement (A–D styles) + Note | ✅ | Statement (bold/accent) + callout for notes |
+| Quote (A–D, on image, carousel) | 🟡 | One clean style with attribution; no on-image/carousel |
 
 ### List blocks
 | Articulate | Halcyra | Notes |
 |---|---|---|
 | Bulleted / Numbered | ✅ | |
-| Checkbox list | ❌ | |
+| Checkbox list | ✅ | Interactive (learner can tick) |
 
 ### Image & gallery blocks
 | Articulate | Halcyra | Notes |
@@ -62,7 +62,7 @@ Localization.
 | Timeline | ❌ | |
 | Sorting activity | ❌ | |
 | Scenario (branching dialogue) | ❌ | Big feature |
-| Button / Button stack | ❌ | |
+| Button / Button stack | 🟡 | Single link button |
 | Storyline block | 🚫 | Requires Storyline |
 
 ### Knowledge check & quiz
@@ -80,7 +80,7 @@ Localization.
 |---|---|---|
 | Chart (bar/line/pie) | ❌ | |
 | Divider | ✅ | |
-| Continue button / Numbered divider / Spacer | ❌ | Continue gates progression |
+| Continue button / Numbered divider / Spacer | 🟡 | Continue (gates content) + spacer done; no numbered |
 | Block templates (save/reuse) | ❌ | |
 
 ## 2. Rise 360 — course-level features
