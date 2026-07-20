@@ -8,6 +8,7 @@
     "dev:web": "npm run dev --workspace @halcyra/web",
     "dev:api": "npm run dev --workspace @halcyra/api",
     "build": "npm run build --workspaces",
-    "typecheck": "npm run typecheck --workspaces"
+    "typecheck": "npm run typecheck --workspaces",
+    "watch:autocommit": "node scripts/auto-commit-watch.mjs"
   }
 }
