@@ -118,7 +118,47 @@ export function Orgs({ userId, userEmail, onBack }: Props) {
     else if (selected) await loadMembers(selected.org_id);
   }
 
+  async function leaveOrg() {
+    if (!selected) return;
+    if (!window.confirm(`Leave "${selected.name}"? You'll lose access to its shared courses.`)) return;
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase
+      .from("org_members")
+      .delete()
+      .eq("org_id", selected.org_id)
+      .eq("user_id", userId);
+    setBusy(false);
+    if (error) {
+      setError(`Leave failed: ${error.message}`);
+      return;
+    }
+    setSelected(null);
+    await loadOrgs();
+  }
+
+  async function deleteOrg() {
+    if (!selected) return;
+    if (
+      !window.confirm(
+        `Delete "${selected.name}"? This removes every member and unlinks all of its shared courses. This can't be undone.`,
+      )
+    )
+      return;
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.from("organizations").delete().eq("id", selected.org_id);
+    setBusy(false);
+    if (error) {
+      setError(`Delete failed: ${error.message}`);
+      return;
+    }
+    setSelected(null);
+    await loadOrgs();
+  }
+
   const canManage = selected?.role === "owner" || selected?.role === "admin";
+  const isOwner = selected?.role === "owner";
 
   return (
     <div>
@@ -167,7 +207,18 @@ export function Orgs({ userId, userEmail, onBack }: Props) {
       ) : (
         <>
           <button className="link" onClick={() => setSelected(null)}>← All teams</button>
-          <h2 className="view-heading">{selected.name}</h2>
+          <div className="lesson-toolbar">
+            <h2 className="view-heading">{selected.name}</h2>
+            {isOwner ? (
+              <button className="course-delete" onClick={deleteOrg} disabled={busy}>
+                Delete organization
+              </button>
+            ) : (
+              <button className="course-delete" onClick={leaveOrg} disabled={busy}>
+                Leave team
+              </button>
+            )}
+          </div>
 
           {canManage && (
             <div className="generate-row">
