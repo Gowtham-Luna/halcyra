@@ -45,3 +45,19 @@ export async function generateOutline(topic: string): Promise<OutlineResult> {
   }
   return parsed;
 }
+
+export async function generateOutlineFromDocument(documentText: string): Promise<OutlineResult> {
+  const parsed = await generateJson<OutlineResult>(
+    `You are an instructional designer turning a source document into an online course. Below is the extracted text of that document (it may include noisy formatting artifacts — ignore those). Produce a concise course title and 4-10 lesson blocks that organize the document's actual content into a logical learning sequence, each with a heading and a 2-3 sentence body summarizing what that lesson covers. Base the outline strictly on the document's content — do not invent unrelated material.
+
+Document text:
+"""
+${documentText}
+"""`,
+    outlineJsonSchema,
+  );
+  if (!parsed.title || !Array.isArray(parsed.blocks)) {
+    throw new Error("Model response did not match outline schema");
+  }
+  return parsed;
+}

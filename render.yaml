@@ -20,3 +20,10 @@ services:
         sync: false
       - key: HALCYRA_WEB_ORIGIN
         sync: false
+      # Optional — powers "Generate narration" on audio blocks. Needs a GCP
+      # project with billing enabled, separate from the Gemini key's project.
+      - key: HALCYRA_GOOGLE_TTS_API_KEY
+        sync: false
+      # Optional — powers "🌐 Translate" on the dashboard. DeepL API Free account.
+      - key: HALCYRA_DEEPL_API_KEY
+        sync: false

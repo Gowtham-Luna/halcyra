@@ -47,6 +47,8 @@ export function RichTextEditor({ html, placeholder, onChange }: Props) {
           className={editor.isActive("bold") ? "on" : ""}
           onClick={() => editor.chain().focus().toggleBold().run()}
           title="Bold"
+          aria-label="Bold"
+          aria-pressed={editor.isActive("bold")}
         >
           <b>B</b>
         </button>
@@ -55,6 +57,8 @@ export function RichTextEditor({ html, placeholder, onChange }: Props) {
           className={editor.isActive("italic") ? "on" : ""}
           onClick={() => editor.chain().focus().toggleItalic().run()}
           title="Italic"
+          aria-label="Italic"
+          aria-pressed={editor.isActive("italic")}
         >
           <i>I</i>
         </button>
@@ -63,6 +67,8 @@ export function RichTextEditor({ html, placeholder, onChange }: Props) {
           className={editor.isActive("bulletList") ? "on" : ""}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           title="Bullet list"
+          aria-label="Bullet list"
+          aria-pressed={editor.isActive("bulletList")}
         >
           ••
         </button>
@@ -71,6 +77,8 @@ export function RichTextEditor({ html, placeholder, onChange }: Props) {
           className={editor.isActive("link") ? "on" : ""}
           onClick={setLink}
           title="Link"
+          aria-label="Link"
+          aria-pressed={editor.isActive("link")}
         >
           🔗
         </button>

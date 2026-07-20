@@ -3,9 +3,12 @@ import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { rateLimit } from "express-rate-limit";
 import { createClient } from "@supabase/supabase-js";
-import { generateOutline } from "./outline.js";
-import { generateLessonBlocks, generateQuiz, regenerateBlock } from "./content.js";
+import { generateOutline, generateOutlineFromDocument } from "./outline.js";
+import { generateLessonBlocks, generateQuiz, generateSummary, regenerateBlock } from "./content.js";
 import { generateImage } from "./image.js";
+import { generateNarration } from "./tts.js";
+import { ACCEPTED_DOC_MIME_TYPES, extractDocumentText } from "./docParse.js";
+import { translateTexts } from "./translate.js";
 
 const SUPABASE_URL = process.env.HALCYRA_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.HALCYRA_SUPABASE_ANON_KEY;
@@ -21,7 +24,8 @@ const app = express();
 // Behind Render's proxy the client IP arrives via X-Forwarded-For.
 app.set("trust proxy", 1);
 app.use(cors({ origin: process.env.HALCYRA_WEB_ORIGIN ?? "http://localhost:5173" }));
-app.use(express.json());
+// Default 100kb is too small for a base64-encoded document upload (doc-outline).
+app.use(express.json({ limit: "12mb" }));
 
 // AI endpoints are the expensive surface (Gemini free tier ~10 RPM total):
 // cap each user/IP well below the shared quota so one user can't starve it.
@@ -82,6 +86,39 @@ app.post("/api/outline", requireUser, async (req, res) => {
   }
 });
 
+const MAX_DOC_BYTES = 8 * 1024 * 1024;
+const MAX_DOC_TEXT_CHARS = 30_000;
+
+app.post("/api/doc-outline", requireUser, async (req, res) => {
+  const mimeType = str(req.body?.mimeType, 200);
+  const fileBase64 = typeof req.body?.fileBase64 === "string" ? req.body.fileBase64 : "";
+  if (!fileBase64 || !ACCEPTED_DOC_MIME_TYPES.includes(mimeType)) {
+    res.status(400).json({ error: `Provide fileBase64 and mimeType (${ACCEPTED_DOC_MIME_TYPES.join(", ")})` });
+    return;
+  }
+  let buffer: Buffer;
+  try {
+    buffer = Buffer.from(fileBase64, "base64");
+  } catch {
+    res.status(400).json({ error: "fileBase64 is not valid base64" });
+    return;
+  }
+  if (buffer.byteLength === 0 || buffer.byteLength > MAX_DOC_BYTES) {
+    res.status(400).json({ error: "File must be non-empty and under 8MB" });
+    return;
+  }
+  try {
+    const text = (await extractDocumentText(buffer, mimeType)).trim().slice(0, MAX_DOC_TEXT_CHARS);
+    if (!text) {
+      res.status(400).json({ error: "No extractable text found in this file" });
+      return;
+    }
+    res.json(await generateOutlineFromDocument(text));
+  } catch (err) {
+    sendGenerationError(res, err);
+  }
+});
+
 app.post("/api/lesson-content", requireUser, async (req, res) => {
   const lessonHeading = str(req.body?.lessonHeading, 300);
   if (!lessonHeading) {
@@ -121,10 +158,39 @@ app.post("/api/quiz", requireUser, async (req, res) => {
   }
 });
 
+app.post("/api/summary", requireUser, async (req, res) => {
+  const lessonHeading = str(req.body?.lessonHeading, 300);
+  if (!lessonHeading) {
+    res.status(400).json({ error: "Provide lessonHeading" });
+    return;
+  }
+  try {
+    const blocks = await generateSummary({
+      courseTitle: str(req.body?.courseTitle, 300),
+      topic: str(req.body?.topic, 300),
+      lessonHeading,
+      lessonBody: str(req.body?.lessonBody, 2000),
+      contentSummary: str(req.body?.contentSummary, 6000),
+    });
+    res.json({ blocks });
+  } catch (err) {
+    sendGenerationError(res, err);
+  }
+});
+
 app.post("/api/block", requireUser, async (req, res) => {
   const lessonHeading = str(req.body?.lessonHeading, 300);
   const block = req.body?.block;
-  const validTypes = ["paragraph", "heading", "list", "mcq", "callout", "quote"];
+  const validTypes = [
+    "paragraph",
+    "heading",
+    "list",
+    "mcq",
+    "multiResponse",
+    "fillBlank",
+    "callout",
+    "quote",
+  ];
   if (!lessonHeading || typeof block !== "object" || block === null || !validTypes.includes(block.type)) {
     res.status(400).json({ error: `Provide lessonHeading and a block of type ${validTypes.join("/")}` });
     return;
@@ -142,6 +208,28 @@ app.post("/api/block", requireUser, async (req, res) => {
   }
 });
 
+const MAX_TRANSLATE_ITEMS = 60;
+const MAX_TRANSLATE_ITEM_CHARS = 4000;
+
+app.post("/api/translate", requireUser, async (req, res) => {
+  const texts = Array.isArray(req.body?.texts) ? req.body.texts : null;
+  const targetLang = str(req.body?.targetLang, 10);
+  if (!texts || texts.length === 0 || texts.length > MAX_TRANSLATE_ITEMS || !targetLang) {
+    res.status(400).json({ error: `Provide 1-${MAX_TRANSLATE_ITEMS} texts and a targetLang` });
+    return;
+  }
+  if (!texts.every((t: unknown) => typeof t === "string" && t.length <= MAX_TRANSLATE_ITEM_CHARS)) {
+    res.status(400).json({ error: `Each text must be a string under ${MAX_TRANSLATE_ITEM_CHARS} chars` });
+    return;
+  }
+  try {
+    const translated = await translateTexts(texts, targetLang);
+    res.json({ texts: translated });
+  } catch (err) {
+    sendGenerationError(res, err);
+  }
+});
+
 app.post("/api/image", requireUser, async (req, res) => {
   const prompt = str(req.body?.prompt, 500);
   if (!prompt) {
@@ -151,6 +239,21 @@ app.post("/api/image", requireUser, async (req, res) => {
   try {
     const image = await generateImage(prompt);
     res.json({ mimeType: image.mimeType, dataBase64: image.data.toString("base64") });
+  } catch (err) {
+    sendGenerationError(res, err);
+  }
+});
+
+app.post("/api/narration", requireUser, async (req, res) => {
+  const text = str(req.body?.text, 2000);
+  const voice = req.body?.voice === "male" ? "male" : "female";
+  if (!text) {
+    res.status(400).json({ error: "Provide text (1-2000 chars)" });
+    return;
+  }
+  try {
+    const audio = await generateNarration(text, voice);
+    res.json({ mimeType: audio.mimeType, dataBase64: audio.data.toString("base64") });
   } catch (err) {
     sendGenerationError(res, err);
   }

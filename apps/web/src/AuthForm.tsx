@@ -2,7 +2,19 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { supabase } from "./lib/supabase";
 
-export function AuthForm() {
+interface Props {
+  heading?: string;
+  tagline?: string;
+  compact?: boolean;
+  onBack?: () => void;
+}
+
+export function AuthForm({
+  heading = "Halcyra",
+  tagline = "AI-assisted course authoring",
+  compact,
+  onBack,
+}: Props) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,9 +38,12 @@ export function AuthForm() {
   }
 
   return (
-    <div className="auth-card">
-      <h1>Halcyra</h1>
-      <p className="tagline">AI-assisted course authoring</p>
+    <div className={`auth-card ${compact ? "auth-card-compact" : ""}`}>
+      {onBack && (
+        <button className="link back" onClick={onBack}>← Back</button>
+      )}
+      {!compact && <h1>{heading}</h1>}
+      <p className="tagline">{tagline}</p>
       <form onSubmit={handleSubmit}>
         <input
           type="email"

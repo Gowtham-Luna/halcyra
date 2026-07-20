@@ -17,7 +17,16 @@ export type Block =
       options: string[];
       correctIndex: number;
       feedback: string;
-    };
+    }
+  | {
+      id: string;
+      type: "multiResponse";
+      question: string;
+      options: string[];
+      correctIndexes: number[];
+      feedback: string;
+    }
+  | { id: string; type: "fillBlank"; template: string; answers: string[][]; feedback: string };
 
 // Flat schema instead of a union: Gemini's JSON-schema support is safest with
 // a single object shape; we validate and narrow server-side in mapRawBlock.
@@ -32,6 +41,9 @@ interface RawBlock {
   question?: string;
   options?: string[];
   correctIndex?: number;
+  correctIndexes?: number[];
+  template?: string;
+  answers?: string[][];
   feedback?: string;
 }
 
@@ -40,7 +52,7 @@ const rawBlockSchema = {
   properties: {
     type: {
       type: "string",
-      enum: ["paragraph", "heading", "list", "mcq", "callout", "quote"],
+      enum: ["paragraph", "heading", "list", "mcq", "multiResponse", "fillBlank", "callout", "quote"],
       description: "Block type",
     },
     cite: {
@@ -56,17 +68,31 @@ const rawBlockSchema = {
     level: { type: "integer", enum: [2, 3], description: "Heading level" },
     items: { type: "array", items: { type: "string" }, description: "List items" },
     style: { type: "string", enum: ["bullet", "number"], description: "List style" },
-    question: { type: "string", description: "MCQ question" },
+    question: { type: "string", description: "Question text for mcq/multiResponse" },
     options: {
       type: "array",
       items: { type: "string" },
       minItems: 3,
       maxItems: 5,
-      description: "MCQ answer options",
+      description: "Answer options for mcq/multiResponse",
     },
     correctIndex: {
       type: "integer",
-      description: "0-based index of the correct option",
+      description: "mcq only: 0-based index of the correct option",
+    },
+    correctIndexes: {
+      type: "array",
+      items: { type: "integer" },
+      description: "multiResponse only: 0-based indexes of every correct option (at least 2)",
+    },
+    template: {
+      type: "string",
+      description: "fillBlank only: a sentence with each blank written as ___",
+    },
+    answers: {
+      type: "array",
+      items: { type: "array", items: { type: "string" } },
+      description: "fillBlank only: accepted answers per blank, in template order",
     },
     feedback: {
       type: "string",
@@ -125,6 +151,34 @@ function mapRawBlock(raw: RawBlock): Block | null {
           : 0;
       return { id, type: "mcq", question, options, correctIndex: idx, feedback: feedback ?? "" };
     }
+    case "multiResponse": {
+      const { question, options, correctIndexes, feedback } = raw;
+      if (!question || !options || options.length < 2) return null;
+      const idxs = (correctIndexes ?? []).filter(
+        (i) => typeof i === "number" && i >= 0 && i < options.length,
+      );
+      if (idxs.length === 0) return null;
+      return {
+        id,
+        type: "multiResponse",
+        question,
+        options,
+        correctIndexes: idxs,
+        feedback: feedback ?? "",
+      };
+    }
+    case "fillBlank": {
+      const { template, answers, feedback } = raw;
+      const blankCount = (template?.match(/___/g) ?? []).length;
+      if (!template || blankCount === 0 || !answers || answers.length < blankCount) return null;
+      return {
+        id,
+        type: "fillBlank",
+        template,
+        answers: answers.slice(0, blankCount),
+        feedback: feedback ?? "",
+      };
+    }
     default:
       return null;
   }
@@ -149,17 +203,35 @@ Write the full lesson content as 5-10 content blocks: use heading blocks (level 
   return blocks;
 }
 
+export async function generateSummary(
+  ctx: LessonContext & { contentSummary: string },
+): Promise<Block[]> {
+  const result = await generateJson<{ blocks: RawBlock[] }>(
+    `You are an instructional designer writing a closing summary for the lesson "${ctx.lessonHeading}" in the course "${ctx.courseTitle}".
+Lesson content summary: ${ctx.contentSummary || ctx.lessonBody || "(infer from the heading)"}.
+Write exactly one callout block (variant "tip") containing a concise 2-4 sentence summary of the key takeaways a learner should remember. Only return one callout block.`,
+    blocksResponseSchema,
+  );
+  const blocks = result.blocks
+    .filter((b) => b.type === "callout")
+    .slice(0, 1)
+    .map(mapRawBlock)
+    .filter((b): b is Block => b !== null);
+  if (blocks.length === 0) throw new Error("Model returned no usable summary");
+  return blocks;
+}
+
 export async function generateQuiz(
   ctx: LessonContext & { contentSummary: string },
 ): Promise<Block[]> {
   const result = await generateJson<{ blocks: RawBlock[] }>(
     `You are an instructional designer writing a knowledge check for the lesson "${ctx.lessonHeading}" in the course "${ctx.courseTitle}".
 Lesson content summary: ${ctx.contentSummary || ctx.lessonBody || "(infer from the heading)"}.
-Write 2-4 mcq blocks. Each must have a clear question, 3-5 plausible options, the 0-based correctIndex, and feedback explaining why the correct answer is right. Only return mcq blocks.`,
+Write 2-4 questions mixing these types: "mcq" (one correct answer — set correctIndex), "multiResponse" (two or more correct answers — set correctIndexes), and "fillBlank" (a sentence with each blank written as ___, plus accepted answers per blank in the answers array). Each question needs 3-5 plausible options (mcq/multiResponse only) and feedback explaining the right answer(s). Only return mcq, multiResponse, or fillBlank blocks.`,
     blocksResponseSchema,
   );
   const blocks = result.blocks
-    .filter((b) => b.type === "mcq")
+    .filter((b) => b.type === "mcq" || b.type === "multiResponse" || b.type === "fillBlank")
     .map(mapRawBlock)
     .filter((b): b is Block => b !== null);
   if (blocks.length === 0) throw new Error("Model returned no usable quiz questions");
